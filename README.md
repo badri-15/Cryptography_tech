@@ -95,15 +95,6 @@ A digital signature scheme that uses ECC to sign messages with a private key and
 - ECDSA is the standard for code signing, SSL certificates, and blockchain technology
 - No external libraries needed in Java — fully supported by the built-in `java.security` package
 
----
-
-## Summary
-
-| Technique | Language | Core Algorithm | Real-World Usage |
-|---|---|---|---|
-| Diffie-Hellman Key Exchange | HTML + JavaScript | Discrete Logarithm | HTTPS, SSH, VPN, TLS |
-| VirusTotal API | Python | Hash Analysis + Signature Detection | Antivirus, SOC, Threat Intel |
-| ECC (ECDH + AES + ECDSA) | Java | Elliptic Curve Discrete Logarithm | TLS 1.3, Bitcoin, SSL, IoT |
 
 ---
 
