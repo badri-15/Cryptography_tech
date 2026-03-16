@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diffie-Hellman Key Exchange</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      padding: 30px 16px;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    h1 { font-size: 22px; color: #1a1a2e; margin-bottom: 6px; }
+    p.subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .field input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4361ee;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      margin-bottom: 24px;
+    }
+    button:hover { background: #3a56d4; }
+    .step {
+      background: #f8f9ff;
+      border-left: 4px solid #4361ee;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+    }
+    .step .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4361ee;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .step .value { font-size: 14px; color: #222; font-family: monospace; }
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .party {
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #e0e0e0;
+      background: white;
+    }
+    .party.alice { border-top: 3px solid #4361ee; }
+    .party.bob   { border-top: 3px solid #e85d04; }
+    .party h3 { font-size: 14px; margin-bottom: 8px; }
+    .party.alice h3 { color: #4361ee; }
+    .party.bob   h3 { color: #e85d04; }
+    .party p { font-size: 13px; color: #444; margin-bottom: 4px; font-family: monospace; }
+    .shared-secret {
+      background: #d4edda;
+      border: 1px solid #28a745;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      display: none;
+    }
+    .shared-secret .label { font-size: 13px; color: #155724; font-weight: 700; }
+    .shared-secret .key   { font-size: 32px; font-weight: bold; color: #155724; margin: 4px 0; }
+    .shared-secret .note  { font-size: 12px; color: #155724; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Diffie-Hellman Key Exchange</h1>
+  <p class="subtitle">Enter public parameters and private keys to simulate the exchange.</p>
+
+  <div class="controls">
+    <div class="field">
+      <label>Prime Number (p)</label>
+      <input type="number" id="p" value="23" min="2">
+    </div>
+    <div class="field">
+      <label>Generator (g)</label>
+      <input type="number" id="g" value="5" min="2">
+    </div>
+    <div class="field">
+      <label>Alice's Private Key (a)</label>
+      <input type="number" id="a" value="6" min="1">
+    </div>
+    <div class="field">
+      <label>Bob's Private Key (b)</label>
+      <input type="number" id="b" value="15" min="1">
+    </div>
+  </div>
+
+  <button onclick="runDH()">Run Key Exchange</button>
+
+  <div class="step">
+    <div class="label">Step 1 — Public Parameters</div>
+    <div class="value" id="step1">Prime p = 23, Generator g = 5</div>
+  </div>
+
+  <div class="parties">
+    <div class="party alice">
+      <h3>Alice</h3>
+      <p id="alice-private">Private: a = 6</p>
+      <p id="alice-public">Public: A = g^a mod p = ?</p>
+      <p id="alice-shared">Shared: B^a mod p = ?</p>
+    </div>
+    <div class="party bob">
+      <h3>Bob</h3>
+      <p id="bob-private">Private: b = 15</p>
+      <p id="bob-public">Public: B = g^b mod p = ?</p>
+      <p id="bob-shared">Shared: A^b mod p = ?</p>
+    </div>
+  </div>
+
+  <div class="shared-secret" id="result">
+    <div class="label">Shared Secret Key (Never Transmitted!)</div>
+    <div class="key" id="shared-key">?</div>
+    <div class="note">Both Alice and Bob computed the same secret independently.</div>
+  </div>
+</div>
+
+<script>
+  function modPow(base, exp, mod) {
+    let result = 1n;
+    base = BigInt(base) % BigInt(mod);
+    exp  = BigInt(exp);
+    mod  = BigInt(mod);
+    while (exp > 0n) {
+      if (exp % 2n === 1n) result = (result * base) % mod;
+      exp  = exp / 2n;
+      base = (base * base) % mod;
+    }
+    return result;
+  }
+
+  function runDH() {
+    const p = parseInt(document.getElementById('p').value);
+    const g = parseInt(document.getElementById('g').value);
+    const a = parseInt(document.getElementById('a').value);
+    const b = parseInt(document.getElementById('b').value);
+
+    const A = modPow(g, a, p);   // Alice's public key
+    const B = modPow(g, b, p);   // Bob's public key
+    const aliceSecret = modPow(B, a, p);
+    const bobSecret   = modPow(A, b, p);
+
+    document.getElementById('step1').textContent =
+      `Prime p = ${p}, Generator g = ${g}`;
+    document.getElementById('alice-private').textContent = `Private: a = ${a}`;
+    document.getElementById('alice-public').textContent  =
+      `Public A = ${g}^${a} mod ${p} = ${A}`;
+    document.getElementById('alice-shared').textContent  =
+      `Shared: ${B}^${a} mod ${p} = ${aliceSecret}`;
+    document.getElementById('bob-private').textContent   = `Private: b = ${b}`;
+    document.getElementById('bob-public').textContent    =
+      `Public B = ${g}^${b} mod ${p} = ${B}`;
+    document.getElementById('bob-shared').textContent    =
+      `Shared: ${A}^${b} mod ${p} = ${bobSecret}`;
+    document.getElementById('shared-key').textContent    = aliceSecret.toString();
+    document.getElementById('result').style.display      = 'block';
+  }
+
+  runDH();
+</script>
+</body>
+</html>
